@@ -463,7 +463,7 @@ OP_ENDIF
 </code></pre>
 <p>Primeiro, se faz um push da string <code>ord</code>, para desambiguar inscrições de outros usos de envelopes.</p>
 <p><code>OP_PUSH 1</code> indica que o próximo push contém o tipo de conteúdo, e <code>OP_PUSH 0</code>indica que os pushes subsequentes contêm o próprio conteúdo. Múltiplos pushes de dados devem ser usados para inscrições grandes, porque uma das poucasrestrições do taproot é que os pushes de dados individuais não podem ser maioresque 520 bytes.</p>
-<p>The inscription content is contained within the input of a reveal transaction, and the inscription is made on the first sat of its input if it has no pointer field. This sat can then be tracked using the familiar rules of ordinal  theory, allowing it to be transferred, bought, sold, lost to fees, and recovered.</p>
+<p>The inscription content is contained within the input of a reveal transaction, and the inscription is made on the first sat of its input if it has no pointer field. This sat can then be tracked using the familiar rules of ordinal theory, allowing it to be transferred, bought, sold, lost to fees, and recovered.</p>
 <h2 id="conteúdo"><a class="header" href="#conteúdo">Conteúdo</a></h2>
 <p>O modelo de dados das inscrições é o de uma resposta HTTP, permitindo que os conteúdos de inscrições sejam servidos por um servidor web e visualizados em um navegador web.</p>
 <h2 id="campos"><a class="header" href="#campos">Campos</a></h2>
@@ -1253,7 +1253,7 @@ OP_ENDIF
 <p>E quanto às taxas, você pode perguntar? Boa pergunta! Vamos imaginar a mesma transação, desta vez com uma taxa de dois satoshis. Transações com taxas enviam mais satoshis nas entradas do que são recebidos pelas saídas, então para transformar nossa transação em uma que paga taxas, removeremos a segunda saída:</p>
 <pre><code>[2] [1] [3] → [4]
 </code></pre>
-<p>Os satoshis <var>e</var>&amp; <var>f</var>agora não têm para onde ir nas saídas:</p>
+<p>The satoshis <var>e</var> and <var>f</var> now have nowhere to go in the outputs:</p>
 <pre><code>[a b] [c] [d e f] → [a b c d]
 </code></pre>
 <p>Então eles vão, como taxas, para o minerador que minerou o bloco. <a href="https://github.com/ordinals/ord/blob/master/bip.mediawiki">O BIP</a> tem os detalhes, mas resumindo, as taxas pagas pelas transações são tratadas como entradas extras para a transação coinbase e são ordenadas como suas transações correspondentes são ordenadas no bloco. A transação coinbase do bloco pode ter a seguinte aparência:</p>

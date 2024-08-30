@@ -463,7 +463,7 @@ OP_ENDIF
 </code></pre>
 <p>首先字符串<code>ord</code>被推送，以消除铭文与信封其他用途的歧义。</p>
 <p><code>OP_PUSH 1</code> 表示下一次推送包含内容类型， <code>OP_PUSH 0</code> 表示后续数据推送包含内容本身，大型铭文必须使用多次数据推送，因为 taproot 的少数限制之一是单个数据推送不得大于 520 字节。</p>
-<p>铭文内容包含在reveal交易的输入中，并且铭文是铭刻在其第一个输出的第一个聪（Satoshi）上。我们可以使用熟悉的序数理论规则来跟踪这个聪 sat，允许它被转移、购买、出售、丢失和恢复。</p>
+<p>The inscription content is contained within the input of a reveal transaction, and the inscription is made on the first sat of its input if it has no pointer field. This sat can then be tracked using the familiar rules of ordinal theory, allowing it to be transferred, bought, sold, lost to fees, and recovered.</p>
 <h2 id="内容"><a class="header" href="#内容">内容</a></h2>
 <p>铭文的数据模型是 HTTP 响应的数据模型，允许铭文由网络服务器提供服务并在网络浏览器中查看的内容。</p>
 <h2 id="字段"><a class="header" href="#字段">字段</a></h2>
@@ -1253,7 +1253,7 @@ OP_ENDIF
 <p>你可能会问交易费用呢？ 好问题！ 让我们想象一下同一笔交易，这次是两个聪的费用。收费交易在输入中发送的聪 多于输出接收的聪，因此为了使我们的交易成为支付费用的交易，我们将删除第二个输出：</p>
 <pre><code>[2] [1] [3] → [4]
 </code></pre>
-<p>聪<var>e</var>和 <var>f</var>现在在输出中无处可去</p>
+<p>The satoshis <var>e</var> and <var>f</var> now have nowhere to go in the outputs:</p>
 <pre><code>[a b] [c] [d e f] → [a b c d]
 </code></pre>
 <p>所以他们作为“费用”去到挖这个区块的矿工那里。<a href="https://github.com/ordinals/ord/blob/master/bip.mediawiki">The BIP</a> 有更详细的描述,但简而言之，交易支付的费用被视为对Coinbase交易的额外输入，并按照其对应的交易在区块中的顺序进行排序。该区块的Coinbase交易可能是这样的:</p>
@@ -2219,7 +2219,8 @@ $ord outputs
 <p>由 <a href="https://twitter.com/rodarmor/status/1569883266508853251">@ordinalsindex</a>赢得！</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="赏金任务-2"><a class="header" href="#赏金任务-2">赏金任务 2</a></h1>
 <h2 id="标准-2"><a class="header" href="#标准-2">标准</a></h2>
-<p>发送一个<span class=uncommon>不普通的</span>聪到下列地址：✅: <a href="https://ordinals.com/sat/347100000000000">347100000000000</a></p>
+<p>Send an <span class=uncommon>uncommon</span> sat to the submission address:</p>
+<p>✅: <a href="https://ordinals.com/sat/347100000000000">347100000000000</a></p>
 <p>❌: <a href="https://ordinals.com/sat/6685000001337">6685000001337</a></p>
 <p>在提交之前确认上述地址并未在你之前收到其他的稀有聪，只有第一个成功的提交可以获得奖励；</p>
 <h2 id="奖励-2"><a class="header" href="#奖励-2">奖励</a></h2>

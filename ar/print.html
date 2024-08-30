@@ -276,7 +276,7 @@
 <li><a href="https://www.youtube.com/watch?v=MC_haVa6N3I">Ordinals Workshop with Rodarmor</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="لمحة-عامة-عن-نظرية-أوردينالس"><a class="header" href="#لمحة-عامة-عن-نظرية-أوردينالس">لمحة عامة عن نظرية أوردينالس</a></h1>
-<p>الأوردينال هي نظام ترقيم للساتوشيات يسمح بتتبع ونقل الساتوشيات الفردية. يُطلق على هذه الأرقام اسم <a href="https://ordinals.com">أرقام ترتيبية</a>. يتم ترقيم الساتوشيات بحسب الترتيب الذي تم فيه تعدينها، ويتم نقلها من مداخل الصفقات  إلى مخارج الصفقات بالترتيب الذي دخلت به أولاً. كل من نظام الترقيم ونظام النقل يعتمد على الترتيب، حيث يعتمد نظام الترقيم على الترتيب الذي تم به تعدين الساتوشيات، ويعتمد نظام النقل على ترتيب مداخل ومخارج الصفقات. وبالتالي يطلق عليها اسم  <em>ordinals</em>.</p>
+<p>الأوردينال هي نظام ترقيم للساتوشيات يسمح بتتبع ونقل الساتوشيات الفردية. يُطلق على هذه الأرقام اسم <a href="https://ordinals.com">أرقام ترتيبية</a>. يتم ترقيم الساتوشيات بحسب الترتيب الذي تم فيه تعدينها، ويتم نقلها من مداخل الصفقات إلى مخارج الصفقات بالترتيب الذي دخلت به أولاً. كل من نظام الترقيم ونظام النقل يعتمد على الترتيب، حيث يعتمد نظام الترقيم على الترتيب الذي تم به تعدين الساتوشيات، ويعتمد نظام النقل على ترتيب مداخل ومخارج الصفقات. وبالتالي يطلق عليها اسم <em>ordinals</em>.</p>
 <p>التفاصيل التقنية متاحة في <a href="https://github.com/ordinals/ord/blob/master/bip.mediawiki">the BIP</a>.</p>
 <p>نظريه أوردينال لا تحتاج عملة مميزة منفصلة أو بلوكشين أخرى أو أي تغييرات في بيتكوين .فهي تعمل الآن.</p>
 <p>أرقام أوردينال لها عدة تمثيلات مختلفة:</p>
@@ -463,7 +463,7 @@ OP_ENDIF
 </code></pre>
 <p>أولاً، يتم دفع سلسلة <code>ord</code> للتفريق بين الكتابات وبين استخدامات أخرى للظروف.</p>
 <p><code>OP_PUSH 1</code> indicates that the next push contains the content type, and <code>OP_PUSH 0</code>indicates that subsequent data pushes contain the content itself. Multiple data pushes must be used for large inscriptions, as one of taproot's few restrictions is that individual data pushes may not be larger than 520 bytes.</p>
-<p>The inscription content is contained within the input of a reveal transaction, and the inscription is made on the first sat of its input if it has no pointer field. This sat can then be tracked using the familiar rules of ordinal  theory, allowing it to be transferred, bought, sold, lost to fees, and recovered.</p>
+<p>The inscription content is contained within the input of a reveal transaction, and the inscription is made on the first sat of its input if it has no pointer field. This sat can then be tracked using the familiar rules of ordinal theory, allowing it to be transferred, bought, sold, lost to fees, and recovered.</p>
 <h2 id="المحتوى"><a class="header" href="#المحتوى">المحتوى</a></h2>
 <p>نموذج بيانات الكتابات هو نفس نموذج الاستجابة HTTP، مما يتيح لمحتوى انسكريبشين أن يتم تقديمه من خلال خادم ويب وعرضه في متصفح ويب.</p>
 <h2 id="الحقول"><a class="header" href="#الحقول">الحقول</a></h2>

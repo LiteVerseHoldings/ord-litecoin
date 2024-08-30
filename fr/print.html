@@ -463,7 +463,7 @@ OP_ENDIF
 </code></pre>
 <p>Tout d’abord, un push est fait avec la chaîne <code>ord</code>pour distinguer les inscriptions des autres utilisations des enveloppes.</p>
 <p><code>OP_PUSH 1</code> indique que le prochain push contient le type de contenu, et <code>OP_PUSH 0</code> indique que les données suivantes dans le push contiennent le contenu lui-même. Plusieurs pushs de données doivent être utilisés pour les inscriptions volumineuses, car l’une des rares restrictions de taproot est qu’un push de données ne peut pas dépasser 520 octets.</p>
-<p>The inscription content is contained within the input of a reveal transaction, and the inscription is made on the first sat of its input if it has no pointer field. This sat can then be tracked using the familiar rules of ordinal  theory, allowing it to be transferred, bought, sold, lost to fees, and recovered.</p>
+<p>The inscription content is contained within the input of a reveal transaction, and the inscription is made on the first sat of its input if it has no pointer field. This sat can then be tracked using the familiar rules of ordinal theory, allowing it to be transferred, bought, sold, lost to fees, and recovered.</p>
 <h2 id="contenu"><a class="header" href="#contenu">Contenu</a></h2>
 <p>Le modèle de données pour les inscriptions est celui d’une réponse HTTP, permettant au contenu de l’inscription d’être récupéré via un serveur web et affiché dans un navigateur web.</p>
 <h2 id="champs"><a class="header" href="#champs">Champs</a></h2>
@@ -1253,7 +1253,7 @@ OP_ENDIF
 <p>À ce stade, vous vous demandez peut-être ce qu’il adviendra des frais... Bonne question ! Imaginons la même transaction, cette fois avec des frais de deux satoshis. Les transactions avec frais contiennent plus de satoshis dans les entrées que les sorties de transactions n’en reçoivent, donc pour convertir notre transaction en une transaction avec frais, nous allons supprimer la deuxième sortie de transaction :</p>
 <pre><code>[2] [1] [3] → [4]
 </code></pre>
-<p>Les satoshis <var>e</var>et <var>f</var>n’ont désormais nulle part où aller dans les sorties :</p>
+<p>The satoshis <var>e</var> and <var>f</var> now have nowhere to go in the outputs:</p>
 <pre><code>[a b] [c] [d e f] → [a b c d]
 </code></pre>
 <p>Ils vont donc au mineur qui a miné le bloc en tant que frais. <a href="https://github.com/ordinals/ord/blob/master/bip.mediawiki">Le BIP</a> donne les détails, mais en résumé, les frais payés par les transactions sont traités comme des entrées supplémentaires dans la transaction coinbase, et sont organisés selon l’ordre de leurs transactions correspondantes dans le bloc. La transaction coinbase du bloc pourrait ressembler à ceci :</p>
@@ -2219,7 +2219,8 @@ $ord outputs
 <p>Réclamé par <a href="https://twitter.com/rodarmor/status/1569883266508853251">@ordinalsindex</a> !</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="récompense-ordinal-2"><a class="header" href="#récompense-ordinal-2">Récompense Ordinal 2</a></h1>
 <h2 id="critères-2"><a class="header" href="#critères-2">Critères</a></h2>
-<p>Envoyez un <span class=uncommon>sat peu commun</span>à l'adresse de soumission :✅: <a href="https://ordinals.com/sat/347100000000000">347100000000000</a></p>
+<p>Send an <span class=uncommon>uncommon</span> sat to the submission address:</p>
+<p>✅: <a href="https://ordinals.com/sat/347100000000000">347100000000000</a></p>
 <p>❌: <a href="https://ordinals.com/sat/6685000001337">6685000001337</a></p>
 <p>Confirmez que l'adresse de soumission n'a pas reçu de transactions avant de soumettre votre candidature. Seule la première soumission réussie sera récompensée.</p>
 <h2 id="récompense-2"><a class="header" href="#récompense-2">Récompense</a></h2>

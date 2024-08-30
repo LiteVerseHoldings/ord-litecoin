@@ -463,7 +463,7 @@ OP_ENDIF
 </code></pre>
 <p>Una ang string na <code>ord</code> ay pushed, upang i-dismbiguate ang mga inskripsiyon mula sa iba pang gamit ng envelopes.</p>
 <p>Ang <code>OP_PUSH 1</code> ay nagpapahiwatig na ang susunod na push ay naglalaman ng content type, at <code>OP_PUSH 0</code> naman ay nagpapahiwatig na ang mga kasunod na data ay naglalaman ng content mismo. Dapat gumamit ng maraming push data para sa isang malalaking inskripsiyon, dahil ito sa limitasyon ng taproot, na kung saan hindi maaring lumagpas sa 520 bytes ang bawat isang data push.</p>
-<p>The inscription content is contained within the input of a reveal transaction, and the inscription is made on the first sat of its input if it has no pointer field. This sat can then be tracked using the familiar rules of ordinal  theory, allowing it to be transferred, bought, sold, lost to fees, and recovered.</p>
+<p>The inscription content is contained within the input of a reveal transaction, and the inscription is made on the first sat of its input if it has no pointer field. This sat can then be tracked using the familiar rules of ordinal theory, allowing it to be transferred, bought, sold, lost to fees, and recovered.</p>
 <h2 id="content"><a class="header" href="#content">Content</a></h2>
 <p>Ang data model ng mga inskripsiyon ay isang HTTP response, na nagbibigay-daan sa nilalaman ng inskripsiyon na maipakita gamit ang web server at nang web browser.</p>
 <h2 id="fields"><a class="header" href="#fields">Fields</a></h2>
@@ -1253,7 +1253,7 @@ OP_ENDIF
 <p>Paano ang tungkol sa fees? Magandang tanong! Isipin natin ang parehong transaksyon, sa pagkakataong ito ay may bayad na dalawang satoshi. Ang mga transaksyong may mga bayarin ay nagpapadala ng mas maraming satoshi sa mga input kaysa sa natatanggap nila sa mga output, kaya para gawing isang transaksyon ang nagbabayad, aalisin natin ang pangalawang output:</p>
 <pre><code>[2] [1] [3] → [4]
 </code></pre>
-<p>Ang Satoshis<var>e</var>at <var>f</var>ay wala nang slot sa output:</p>
+<p>The satoshis <var>e</var> and <var>f</var> now have nowhere to go in the outputs:</p>
 <pre><code>[a b] [c] [d e f] → [a b c d]
 </code></pre>
 <p>Kaya't bumalik sila sa miner na nagmimina ng block bilang bayad. Para sa detalyeng kaalaman, mabuting bisitahin ang <a href="https://github.com/ordinals/ord/blob/master/bip.mediawiki">BIP</a>, ngunit sa kabuuan, ang mga bayarin na binayaran ng mga transaksyon ay itinuturing bilang karagdagang mga entry sa transaksyon ng coinbase, at ordered sa parehong paraan tulad ng mga kaukulang transaksyon na ordered sa block. Maaaring ganito ang hitsura ng transaksyon sa coinbase ng block:</p>
@@ -2219,7 +2219,8 @@ $ord outputs
 <p>Claimed ni <a href="https://twitter.com/rodarmor/status/1569883266508853251">@ordinalsindex</a>!</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="ordinal-bounty-2"><a class="header" href="#ordinal-bounty-2">Ordinal Bounty 2</a></h1>
 <h2 id="criteria-2"><a class="header" href="#criteria-2">Criteria</a></h2>
-<p>Send an <span class=uncommon>uncommon</span>sat sa address ng pagsusumite:✅: <a href="https://ordinals.com/sat/347100000000000">347100000000000</a></p>
+<p>Send an <span class=uncommon>uncommon</span> sat to the submission address:</p>
+<p>✅: <a href="https://ordinals.com/sat/347100000000000">347100000000000</a></p>
 <p>❌: <a href="https://ordinals.com/sat/6685000001337">6685000001337</a></p>
 <p>I-confirm na ang submission address ay hindi nakatanggap ng mga transaksyon bago pagsusumite ng iyong entry. Tanging ang unang matagumpay na pagsusumite ay gagantimpalaan.</p>
 <h2 id="reward-2"><a class="header" href="#reward-2">Reward</a></h2>
