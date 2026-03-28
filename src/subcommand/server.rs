@@ -8,9 +8,9 @@ use {
   crate::templates::{
     AddressHtml, BlockHtml, BlocksHtml, ChildrenHtml, ClockSvg, CollectionsHtml, HomeHtml,
     InputHtml, InscriptionHtml, InscriptionsBlockHtml, InscriptionsHtml, OutputHtml, PageContent,
-    PageHtml, ParentsHtml, PreviewAudioHtml, PreviewCodeHtml, PreviewFontHtml, PreviewImageHtml,
-    PreviewMarkdownHtml, PreviewModelHtml, PreviewPdfHtml, PreviewTextHtml, PreviewUnknownHtml,
-    PreviewVideoHtml, RareTxt, RuneHtml, RunesHtml, SatHtml, TransactionHtml,
+    PageHtml, ParentsHtml, PreviewAudioHtml, PreviewCodeHtml, PreviewFontHtml, PreviewIframeHtml,
+    PreviewImageHtml, PreviewMarkdownHtml, PreviewModelHtml, PreviewPdfHtml, PreviewTextHtml,
+    PreviewUnknownHtml, PreviewVideoHtml, RareTxt, RuneHtml, RunesHtml, SatHtml, TransactionHtml,
   },
   axum::{
     body,
@@ -1568,7 +1568,7 @@ impl Server {
     Extension(settings): Extension<Arc<Settings>>,
     Extension(server_config): Extension<Arc<ServerConfig>>,
     Path(inscription_id): Path<InscriptionId>,
-    accept_encoding: AcceptEncoding,
+    _accept_encoding: AcceptEncoding,
   ) -> ServerResult {
     task::block_in_place(|| {
       if settings.is_hidden(inscription_id) {
@@ -1586,14 +1586,6 @@ impl Server {
       }
 
       let media = inscription.media();
-
-      if let Media::Iframe = media {
-        return Ok(
-          Self::content_response(inscription, accept_encoding, &server_config)?
-            .ok_or_not_found(|| format!("inscription {inscription_id} content"))?
-            .into_response(),
-        );
-      }
 
       let content_security_policy = server_config.preview_content_security_policy(media)?;
 
@@ -1614,7 +1606,9 @@ impl Server {
         Media::Font => {
           Ok((content_security_policy, PreviewFontHtml { inscription_id }).into_response())
         }
-        Media::Iframe => unreachable!(),
+        Media::Iframe => {
+          Ok((content_security_policy, PreviewIframeHtml { inscription_id }).into_response())
+        }
         Media::Image(image_rendering) => Ok(
           (
             content_security_policy,
@@ -4737,8 +4731,12 @@ mod tests {
     server.assert_response_csp(
       format!("/preview/{}", InscriptionId { txid, index: 0 }),
       StatusCode::OK,
-      "default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob:",
-      "hello",
+      "default-src 'none'; frame-src 'self'; child-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; navigate-to 'none'",
+      format!(
+        ".*<iframe.*sandbox=allow-scripts.*loading=lazy.*referrerpolicy=no-referrer.*src=/content/{}.*title='sandboxed inscription {}'.*</iframe>.*",
+        InscriptionId { txid, index: 0 },
+        InscriptionId { txid, index: 0 }
+      ),
     );
   }
 

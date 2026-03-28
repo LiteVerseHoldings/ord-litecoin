@@ -21,9 +21,7 @@ impl ServerConfig {
       Media::Code(_) => "script-src-elem 'self' https://cdn.jsdelivr.net",
       Media::Font => "script-src-elem 'self'; style-src 'self' 'unsafe-inline'",
       Media::Iframe => {
-        return Err(
-          anyhow!("preview_content_security_policy cannot be called with Media::Iframe").into(),
-        )
+        "default-src 'none'; frame-src 'self'; child-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; navigate-to 'none'"
       }
       Media::Image(_) => "default-src 'self' 'unsafe-inline'",
       Media::Markdown => "script-src-elem 'self' https://cdn.jsdelivr.net",
