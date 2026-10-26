@@ -62,6 +62,12 @@ heights. These tests do not claim full MWEB consensus validation.
 | Raw block API | `/r/block/<query>` must preserve actual Litecoin/MWEB wire bytes. Do not advertise a reserialized, potentially incomplete block as raw block hex. |
 | New protocols and endpoints | Review gallery/metadata changes, offers, rune changes, pay-to-anchor assumptions, and recursive APIs individually. Upstream activation rules must not silently redefine existing Litecoin assets. |
 | Reorganizations | Audit and preserve the custom production recovery build, then port upstream savepoint/reorganization fixes with restart and rollback tests. |
+| Dependency advisories | GitHub reported 46 open alerts, including 13 high-severity alerts, after the first backport push. Alerts cover both the application and the separate fuzz lockfile. Prioritize the TLS/certificate stack and compatible patched transitive versions; tests passing does not resolve these alerts. |
+
+CI validates the inherited handbook using mdBook 0.4.52, which supports its
+existing theme. Automatic Pages publication is disabled in this fork, and the
+inherited upstream CNAME is removed. Litecoin-specific documentation and an
+explicitly owned destination must be established before enabling publication.
 
 ## Verification And Deployment
 
