@@ -36,14 +36,8 @@ impl TestServer {
 
     fs::write(&cookiefile, "username:password").unwrap();
 
-    let port = TcpListener::bind("127.0.0.1:0")
-      .unwrap()
-      .local_addr()
-      .unwrap()
-      .port();
-
     let (settings, server) = parse_ord_server_args(&format!(
-      "ord --litecoin-rpc-url {} --cookie-file {} --litecoin-data-dir {} --datadir {} {} server {} --http-port {port} --address 127.0.0.1",
+      "ord --litecoin-rpc-url {} --cookie-file {} --litecoin-data-dir {} --datadir {} {} server {} --http-port 0 --address 127.0.0.1",
       core.url(),
       cookiefile.to_str().unwrap(),
       tempdir.path().display(),
@@ -64,6 +58,18 @@ impl TestServer {
       let ord_server_handle = ord_server_handle.clone();
       thread::spawn(|| server.run(settings, index, ord_server_handle).unwrap());
     }
+
+    let port = tokio::runtime::Builder::new_current_thread()
+      .enable_time()
+      .build()
+      .unwrap()
+      .block_on(async {
+        tokio::time::timeout(Duration::from_secs(20), ord_server_handle.listening())
+          .await
+          .expect("ord server did not start listening")
+          .expect("ord server failed to bind")
+          .port()
+      });
 
     for i in 0.. {
       match reqwest::blocking::get(format!("http://127.0.0.1:{port}/status")) {

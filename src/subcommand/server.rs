@@ -2257,11 +2257,17 @@ mod tests {
 
       fs::write(&cookiefile, "username:password").unwrap();
 
-      let port = TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port();
+      // The shared HTTPS handle can report either listener. Redirect tests need
+      // their HTTP port explicitly; ordinary HTTP tests let the server bind it.
+      let port = if self.server_args.contains_key("--https") {
+        TcpListener::bind("127.0.0.1:0")
+          .unwrap()
+          .local_addr()
+          .unwrap()
+          .port()
+      } else {
+        0
+      };
 
       let mut args = vec!["ord".to_string()];
 
@@ -2325,6 +2331,22 @@ mod tests {
         let ord_server_handle = ord_server_handle.clone();
         thread::spawn(|| server.run(settings, index, ord_server_handle).unwrap());
       }
+
+      let port = if port == 0 {
+        tokio::runtime::Builder::new_current_thread()
+          .enable_time()
+          .build()
+          .unwrap()
+          .block_on(async {
+            tokio::time::timeout(Duration::from_secs(20), ord_server_handle.listening())
+              .await
+              .expect("ord server did not start listening")
+              .expect("ord server failed to bind")
+              .port()
+          })
+      } else {
+        port
+      };
 
       while index.statistic(crate::index::Statistic::Commits) == 0 {
         thread::sleep(Duration::from_millis(50));
@@ -3625,6 +3647,26 @@ mod tests {
         spent: false,
       }
     );
+  }
+
+  #[test]
+  fn http_test_servers_use_distinct_bound_ports() {
+    let first = TestServer::new();
+    let second = TestServer::new();
+
+    assert_ne!(first.url.port().unwrap(), 0);
+    assert_ne!(second.url.port().unwrap(), 0);
+    assert_ne!(first.url.port(), second.url.port());
+    assert_ne!(
+      first.url.port(),
+      Url::parse(&first.core.url()).unwrap().port()
+    );
+    assert_ne!(
+      second.url.port(),
+      Url::parse(&second.core.url()).unwrap().port()
+    );
+    first.assert_response_regex("/status", StatusCode::OK, ".*<h1>Status</h1>.*");
+    second.assert_response_regex("/status", StatusCode::OK, ".*<h1>Status</h1>.*");
   }
 
   #[test]
