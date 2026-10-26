@@ -210,6 +210,7 @@ mod tests {
     assert!(page.contains("src=/static/liteverse-symbol-v1.png"));
     assert!(page.contains("ORD<span class=brand-dot>&#8226;</span>LITEVERSE"));
     assert!(page.contains("aria-label=\"Search the Litecoin explorer\""));
+    assert!(page.contains("href=https://discord.gg/Ffs5fTuCf7 title=discord aria-label=Community"));
     assert!(!page.contains("logo_txt"));
     assert!(!page.contains("marketplace"));
     assert!(!page.contains("/static/favicon"));
