@@ -39,7 +39,7 @@ jobs:
         mdbook-version: '0.4.52'
 
     - name: Install mdbook-i18n-helpers
-      run: cargo install mdbook-i18n-helpers
+      run: cargo install mdbook-i18n-helpers --version 0.3.5 --locked
 
     - name: Install mdbook-linkcheck
       run: |
