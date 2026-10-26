@@ -20,6 +20,7 @@ The package version remains 0.20.1 to avoid implying that the full port is done.
 | [Checked decimal addition](https://github.com/ordinals/ord/commit/00d410a7) and [excessive precision errors](https://github.com/ordinals/ord/commit/899e3094) | Reject multiplication/addition overflow and excessive precision rather than panicking or wrapping amounts. Include a maximum representable amount regression test. |
 | [JSON API batch limits](https://github.com/ordinals/ord/commit/140dd899) | Limit existing `/outputs` and `/inscriptions` batch endpoints; reject null and unbound aggregate outputs. Use a default of 100 items and a 2 MiB body limit rather than leaving public requests unbounded. |
 | [Honor configured HTTP port](https://github.com/ordinals/ord/commit/fd152bf9) | Read `http_port` from existing settings, with a command-line argument taking precedence. Preserve HTTPS-only behavior without an explicit HTTP port. |
+| [Synchronize wallet test commands](https://github.com/ordinals/ord/commit/54d2a3eb) | Synchronize the isolated test index before invoking wallet commands, honor test-server authentication, and preserve no-sync tests. Avoid racing the background indexer on busy CI runners. |
 
 `server --batch-limit N`, `ORD_BATCH_LIMIT=N`, or `batch_limit: N` in
 `ord.yaml` changes the item limit. A limit of zero allows only empty batches;
