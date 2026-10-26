@@ -127,6 +127,62 @@ mod tests {
   use super::*;
 
   #[test]
+  fn litecoin_network_rules_are_preserved() {
+    assert_eq!(SUBSIDY_HALVING_INTERVAL, 840_000);
+    assert_eq!(DIFFCHANGE_INTERVAL, 2_016);
+    assert_eq!(Sat::SUPPLY, 8_399_999_990_760_000);
+    assert_eq!(Chain::Mainnet.default_rpc_port(), 9332);
+    assert_eq!(Chain::Testnet.default_rpc_port(), 19332);
+    assert_eq!(Chain::Regtest.default_rpc_port(), 19443);
+    assert_eq!(Chain::Signet.default_rpc_port(), 39332);
+    assert_eq!(Chain::Mainnet.first_inscription_height(), 2_424_429);
+    assert_eq!(Chain::Mainnet.jubilee_height(), 2_608_704);
+    assert_eq!(Chain::Mainnet.first_rune_height(), 2_675_600);
+
+    assert_eq!(
+      Chain::Mainnet.genesis_block().block_hash().to_string(),
+      "12a765e31ffd4059bada1e25190f6e98c99d9714d334efa41a195a7e7e04bfe2",
+    );
+    assert_eq!(
+      Chain::Mainnet.genesis_coinbase_outpoint().txid.to_string(),
+      "97ddfbbae6be97fd6cdf3e7ca13232a3afff2353e29badfab7f73011edd4ced9",
+    );
+  }
+
+  #[test]
+  fn litecoin_mweb_rpc_types_are_recognized() {
+    use bitcoincore_rpc::json::ScriptPubkeyType;
+
+    for value in [
+      ScriptPubkeyType::Witness_Mweb_Pegin,
+      ScriptPubkeyType::Witness_Mweb_HogAddr,
+    ] {
+      let json = serde_json::to_string(&value).unwrap();
+      assert_eq!(
+        serde_json::from_str::<ScriptPubkeyType>(&json).unwrap(),
+        value
+      );
+    }
+  }
+
+  #[test]
+  fn native_segwit_addresses_use_litecoin_prefixes() {
+    let script = ScriptBuf::from_bytes([vec![0, 20], vec![0; 20]].concat());
+
+    for (chain, prefix) in [
+      (Chain::Mainnet, "ltc1q"),
+      (Chain::Testnet, "tltc1q"),
+      (Chain::Regtest, "rltc1q"),
+    ] {
+      assert!(chain
+        .address_from_script(&script)
+        .unwrap()
+        .to_string()
+        .starts_with(prefix));
+    }
+  }
+
+  #[test]
   fn from_str() {
     assert_eq!("mainnet".parse::<Chain>().unwrap(), Chain::Mainnet);
     assert_eq!("regtest".parse::<Chain>().unwrap(), Chain::Regtest);

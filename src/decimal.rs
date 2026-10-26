@@ -72,11 +72,22 @@ impl FromStr for Decimal {
           / 10u128
             .checked_pow(u32::try_from(trailing_zeros).unwrap())
             .context("excessive trailing zeros")?;
-        (decimal, u8::try_from(significant_digits).unwrap())
+        (
+          decimal,
+          u8::try_from(significant_digits).context("excessive precision")?,
+        )
       };
 
       Ok(Self {
-        value: integer * 10u128.pow(u32::from(scale)) + decimal,
+        value: integer
+          .checked_mul(
+            10u128
+              .checked_pow(u32::from(scale))
+              .context("excessive precision")?,
+          )
+          .context("integer overflows maximum value")?
+          .checked_add(decimal)
+          .context("decimal overflows maximum value")?,
         scale,
       })
     } else {
@@ -122,6 +133,35 @@ mod tests {
     case("1.", 1, 0);
     case(".1", 1, 1);
     case("1.10", 11, 1);
+  }
+
+  #[test]
+  fn overflowing_and_excessively_precise_amounts_are_errors() {
+    for (input, expected) in [
+      (
+        format!("{}.1", u128::MAX),
+        "integer overflows maximum value",
+      ),
+      (
+        format!("{}.6", u128::MAX / 10),
+        "decimal overflows maximum value",
+      ),
+      (
+        "0.000000000000000000000000000000000000001".into(),
+        "excessive precision",
+      ),
+      (format!("0.{}1", "0".repeat(255)), "excessive precision"),
+    ] {
+      assert_eq!(input.parse::<Decimal>().unwrap_err().to_string(), expected);
+    }
+
+    assert_eq!(
+      format!("{}.5", u128::MAX / 10).parse::<Decimal>().unwrap(),
+      Decimal {
+        value: u128::MAX,
+        scale: 1,
+      },
+    );
   }
 
   #[test]

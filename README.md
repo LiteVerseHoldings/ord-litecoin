@@ -4,6 +4,10 @@
 `ord` is an index, block explorer, and command-line wallet. It is experimental
 software with no warranty. See [LICENSE](LICENSE) for more details.
 
+See [the upstream port record](UPSTREAM-PORT.md) for the Litecoin compatibility
+requirements, backported fixes, and production upgrade gates. This fork is not
+yet a complete port of the latest upstream release.
+
 Ordinal theory imbues litoshis with numismatic value, allowing them to
 be collected and traded as curios.
 

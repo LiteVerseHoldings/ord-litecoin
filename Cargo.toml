@@ -94,5 +94,6 @@ name = "integration"
 path = "tests/lib.rs"
 
 [patch.crates-io]
-bitcoin = { git = "https://github.com/ynohtna92/rust-litecoin" }
-bitcoincore-rpc = { git = "https://github.com/ynohtna92/rust-bitcoincore-rpc" }
+bitcoin = { git = "https://github.com/LiteVerseHoldings/rust-litecoin", rev = "c4938f90d533eb6d730f4f7677f4ac155033cf97" }
+bitcoincore-rpc = { git = "https://github.com/LiteVerseHoldings/rust-bitcoincore-rpc", rev = "9268a687f419ea96de0faffa164f3c6e1cdaac7f" }
+bitcoincore-rpc-json = { git = "https://github.com/LiteVerseHoldings/rust-bitcoincore-rpc", rev = "9268a687f419ea96de0faffa164f3c6e1cdaac7f" }

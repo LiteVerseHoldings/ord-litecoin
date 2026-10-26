@@ -478,10 +478,10 @@ dependencies = [
 [[package]]
 name = "bitcoin"
 version = "0.30.1"
-source = "git+https://github.com/ynohtna92/rust-litecoin#c4938f90d533eb6d730f4f7677f4ac155033cf97"
+source = "git+https://github.com/LiteVerseHoldings/rust-litecoin?rev=c4938f90d533eb6d730f4f7677f4ac155033cf97#c4938f90d533eb6d730f4f7677f4ac155033cf97"
 dependencies = [
  "bech32",
- "bitcoin-private 0.1.0 (git+https://github.com/ynohtna92/rust-litecoin)",
+ "bitcoin-private 0.1.0 (git+https://github.com/LiteVerseHoldings/rust-litecoin?rev=c4938f90d533eb6d730f4f7677f4ac155033cf97)",
  "bitcoin_hashes 0.12.0",
  "hex_lit",
  "secp256k1",
@@ -497,7 +497,7 @@ checksum = "73290177011694f38ec25e165d0387ab7ea749a4b81cd4c80dae5988229f7a57"
 [[package]]
 name = "bitcoin-private"
 version = "0.1.0"
-source = "git+https://github.com/ynohtna92/rust-litecoin#c4938f90d533eb6d730f4f7677f4ac155033cf97"
+source = "git+https://github.com/LiteVerseHoldings/rust-litecoin?rev=c4938f90d533eb6d730f4f7677f4ac155033cf97#c4938f90d533eb6d730f4f7677f4ac155033cf97"
 
 [[package]]
 name = "bitcoin_hashes"
@@ -518,7 +518,7 @@ dependencies = [
 [[package]]
 name = "bitcoincore-rpc"
 version = "0.17.0"
-source = "git+https://github.com/ynohtna92/rust-bitcoincore-rpc#2eb2cfcc2ab0eaa49f535dc59662143aeb8d2de3"
+source = "git+https://github.com/LiteVerseHoldings/rust-bitcoincore-rpc?rev=9268a687f419ea96de0faffa164f3c6e1cdaac7f#9268a687f419ea96de0faffa164f3c6e1cdaac7f"
 dependencies = [
  "bitcoin-private 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitcoincore-rpc-json",
@@ -531,7 +531,7 @@ dependencies = [
 [[package]]
 name = "bitcoincore-rpc-json"
 version = "0.17.0"
-source = "git+https://github.com/ynohtna92/rust-bitcoincore-rpc#9fa722de2e2d9c210f80f598af000eb407dcb83b"
+source = "git+https://github.com/LiteVerseHoldings/rust-bitcoincore-rpc?rev=9268a687f419ea96de0faffa164f3c6e1cdaac7f#9268a687f419ea96de0faffa164f3c6e1cdaac7f"
 dependencies = [
  "bitcoin",
  "bitcoin-private 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",

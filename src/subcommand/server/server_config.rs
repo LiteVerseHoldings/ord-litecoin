@@ -2,6 +2,7 @@ use {super::*, axum::http::HeaderName};
 
 #[derive(Default)]
 pub(crate) struct ServerConfig {
+  pub(crate) batch_limit: Option<usize>,
   pub(crate) chain: Chain,
   pub(crate) csp_origin: Option<String>,
   pub(crate) decompress: bool,
@@ -12,6 +13,18 @@ pub(crate) struct ServerConfig {
 }
 
 impl ServerConfig {
+  pub(super) fn check_batch_limit(&self, count: usize) -> ServerResult<()> {
+    if let Some(limit) = self.batch_limit {
+      if count > limit {
+        return Err(ServerError::BadRequest(format!(
+          "request for {count} items exceeds batch limit of {limit}"
+        )));
+      }
+    }
+
+    Ok(())
+  }
+
   pub(super) fn preview_content_security_policy(
     &self,
     media: Media,

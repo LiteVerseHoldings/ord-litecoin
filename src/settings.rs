@@ -3,6 +3,7 @@ use {super::*, bitcoincore_rpc::Auth};
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default, deny_unknown_fields)]
 pub struct Settings {
+  batch_limit: Option<usize>,
   litecoin_data_dir: Option<PathBuf>,
   litecoin_rpc_limit: Option<u32>,
   litecoin_rpc_password: Option<String>,
@@ -108,6 +109,7 @@ impl Settings {
 
   pub fn or(self, source: Settings) -> Self {
     Self {
+      batch_limit: self.batch_limit.or(source.batch_limit),
       litecoin_data_dir: self.litecoin_data_dir.or(source.litecoin_data_dir),
       litecoin_rpc_limit: self.litecoin_rpc_limit.or(source.litecoin_rpc_limit),
       litecoin_rpc_password: self.litecoin_rpc_password.or(source.litecoin_rpc_password),
@@ -146,6 +148,7 @@ impl Settings {
 
   pub fn from_options(options: Options) -> Self {
     Self {
+      batch_limit: None,
       litecoin_data_dir: options.litecoin_data_dir,
       litecoin_rpc_limit: options.litecoin_rpc_limit,
       litecoin_rpc_password: options.litecoin_rpc_password,
@@ -239,6 +242,7 @@ impl Settings {
     };
 
     Ok(Self {
+      batch_limit: get_usize("BATCH_LIMIT")?,
       litecoin_data_dir: get_path("LITECOIN_DATA_DIR"),
       litecoin_rpc_limit: get_u32("LITECOIN_RPC_LIMIT")?,
       litecoin_rpc_password: get_string("LITECOIN_RPC_PASSWORD"),
@@ -269,6 +273,7 @@ impl Settings {
 
   pub fn for_env(dir: &Path, rpc_url: &str, server_url: &str) -> Self {
     Self {
+      batch_limit: None,
       litecoin_data_dir: Some(dir.into()),
       litecoin_rpc_password: None,
       litecoin_rpc_url: Some(rpc_url.into()),
@@ -300,24 +305,24 @@ impl Settings {
   pub fn or_defaults(self) -> Result<Self> {
     let chain = self.chain.unwrap_or_default();
 
-    let bitcoin_data_dir = match &self.litecoin_data_dir {
-      Some(bitcoin_data_dir) => bitcoin_data_dir.clone(),
+    let litecoin_data_dir = match &self.litecoin_data_dir {
+      Some(litecoin_data_dir) => litecoin_data_dir.clone(),
       None => {
         if cfg!(target_os = "linux") {
           dirs::home_dir()
             .ok_or_else(|| anyhow!("failed to get cookie file path: could not get home dir"))?
-            .join(".bitcoin")
+            .join(".litecoin")
         } else {
           dirs::data_dir()
             .ok_or_else(|| anyhow!("failed to get cookie file path: could not get data dir"))?
-            .join("Bitcoin")
+            .join("Litecoin")
         }
       }
     };
 
     let cookie_file = match self.cookie_file {
       Some(cookie_file) => cookie_file,
-      None => chain.join_with_data_dir(&bitcoin_data_dir).join(".cookie"),
+      None => chain.join_with_data_dir(&litecoin_data_dir).join(".cookie"),
     };
 
     let data_dir = chain.join_with_data_dir(match &self.data_dir {
@@ -331,7 +336,8 @@ impl Settings {
     };
 
     Ok(Self {
-      litecoin_data_dir: Some(bitcoin_data_dir),
+      batch_limit: Some(self.batch_limit.unwrap_or(100)),
+      litecoin_data_dir: Some(litecoin_data_dir),
       litecoin_rpc_limit: Some(self.litecoin_rpc_limit.unwrap_or(12)),
       litecoin_rpc_password: self.litecoin_rpc_password,
       litecoin_rpc_url: Some(
@@ -377,6 +383,14 @@ impl Settings {
         .context("could not get data dir")?
         .join("ord"),
     )
+  }
+
+  pub fn batch_limit(&self) -> Option<usize> {
+    self.batch_limit
+  }
+
+  pub fn http_port(&self) -> Option<u16> {
+    self.http_port
   }
 
   pub fn bitcoin_credentials(&self) -> Result<Auth> {
@@ -736,14 +750,12 @@ mod tests {
   fn mainnet_cookie_file_path() {
     let cookie_file = parse(&[]).cookie_file().unwrap().display().to_string();
 
-    println!("{}", cookie_file);
-
     assert!(cookie_file.ends_with(if cfg!(target_os = "linux") {
-      "/.bitcoin/.cookie"
+      "/.litecoin/.cookie"
     } else if cfg!(windows) {
-      r"\Bitcoin\.cookie"
+      r"\Litecoin\.cookie"
     } else {
-      "/Bitcoin/.cookie"
+      "/Litecoin/.cookie"
     }))
   }
 
@@ -756,16 +768,16 @@ mod tests {
       .to_string();
 
     assert!(cookie_file.ends_with(if cfg!(target_os = "linux") {
-      "/.bitcoin/signet/.cookie"
+      "/.litecoin/signet/.cookie"
     } else if cfg!(windows) {
-      r"\Bitcoin\signet\.cookie"
+      r"\Litecoin\signet\.cookie"
     } else {
-      "/Bitcoin/signet/.cookie"
+      "/Litecoin/signet/.cookie"
     }));
   }
 
   #[test]
-  fn cookie_file_defaults_to_bitcoin_data_dir() {
+  fn cookie_file_defaults_to_litecoin_data_dir() {
     let cookie_file = parse(&["--litecoin-data-dir=foo", "--chain=signet"])
       .cookie_file()
       .unwrap()
@@ -1000,8 +1012,23 @@ mod tests {
   }
 
   #[test]
+  fn batch_limit_environment_overrides_config_and_survives_defaults() {
+    let config: Settings = serde_yaml::from_str("batch_limit: 3").unwrap();
+    let environment = Settings::from_env([("BATCH_LIMIT".into(), "7".into())].into()).unwrap();
+    assert_eq!(
+      environment.or(config).or_defaults().unwrap().batch_limit(),
+      Some(7)
+    );
+    assert_eq!(
+      Settings::default().or_defaults().unwrap().batch_limit(),
+      Some(100)
+    );
+  }
+
+  #[test]
   fn from_env() {
     let env = vec![
+      ("BATCH_LIMIT", "42"),
       ("LITECOIN_DATA_DIR", "/litecoin/data/dir"),
       ("LITECOIN_RPC_LIMIT", "12"),
       ("LITECOIN_RPC_PASSWORD", "litecoin password"),
@@ -1035,6 +1062,7 @@ mod tests {
     pretty_assert_eq!(
       Settings::from_env(env).unwrap(),
       Settings {
+        batch_limit: Some(42),
         litecoin_data_dir: Some("/litecoin/data/dir".into()),
         litecoin_rpc_limit: Some(12),
         litecoin_rpc_password: Some("litecoin password".into()),
@@ -1107,6 +1135,7 @@ mod tests {
         .unwrap()
       ),
       Settings {
+        batch_limit: None,
         litecoin_data_dir: Some("/litecoin/data/dir".into()),
         litecoin_rpc_limit: Some(12),
         litecoin_rpc_password: Some("litecoin password".into()),
