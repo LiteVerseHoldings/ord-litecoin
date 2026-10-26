@@ -69,18 +69,14 @@ where
 
   fn og_image(&self) -> String {
     if let Some(domain) = &self.config.domain {
-      format!("https://{domain}/static/favicon.png")
+      format!("https://{domain}/static/liteverse-symbol-v1.png")
     } else {
-      "https://ordinals.com/static/favicon.png".into()
+      "https://ordliteverse.com/static/liteverse-symbol-v1.png".into()
     }
   }
 
   fn superscript(&self) -> String {
-    if self.config.chain == Chain::Mainnet {
-      "beta".into()
-    } else {
-      self.config.chain.to_string()
-    }
+    self.config.chain.to_string()
   }
 }
 
@@ -123,32 +119,35 @@ mod tests {
         index_sats: true,
         ..default()
       }),),
-      r"<!doctype html>
+      r#"<!doctype html>
 <html lang=en>
   <head>
     <meta charset=utf-8>
     <meta name=format-detection content='telephone=no'>
     <meta name=viewport content='width=device-width,initial-scale=1.0'>
     <meta property=og:title content='Foo'>
-    <meta property=og:image content='https://signet.ordinals.com/static/favicon.png'>
+    <meta property=og:image content='https://signet.ordinals.com/static/liteverse-symbol-v1.png'>
     <meta property=twitter:card content=summary>
     <title>Foo</title>
     <link rel=alternate href=/feed.xml type=application/rss\+xml title='Inscription Feed'>
-    <link rel=icon href=/static/favicon.png>
-    <link rel=icon href=/static/favicon.svg>
+    <link rel=icon href=/static/liteverse-symbol-v1.png type=image/png>
     <link rel=stylesheet href=/static/index.css>
     <link rel=stylesheet href=/static/modern-normalize.css>
+    <link rel=stylesheet href=/static/ord-liteverse-v1.css>
     <script src=/static/index.js defer></script>
   </head>
-  <body>
+  <body class=ord-liteverse>
   <header>
-    <nav>
-      <a href=/ title=home>Ordinals<sup>beta</sup></a>
+    <nav aria-label=Explorer>
+      <a class=brand href=/ title=home aria-label="ORD&#8226;LITEVERSE home"><img class=brand-logo src=/static/liteverse-symbol-v1.png alt="" width=48 height=30><span class=brand-name>ORD<span class=brand-dot>&#8226;</span>LITEVERSE</span></a>
+      <span class=brand-network>mainnet</span>
+      <div class=explorer-links>
       .*
-      <a href=/clock title=clock>.*</a>
-      <a href=/rare.txt title=rare>.*</a>
+      <a href=/clock title=clock aria-label=Clock>.*</a>
+      <a href=/rare.txt title=rare aria-label="Rare sats">.*</a>
       .*
-      <form action=/search method=get>
+      </div>
+      <form class=explorer-search action=/search method=get role=search>
         <input type=text .*>
         <input class=icon type=image .*>
       </form>
@@ -159,7 +158,7 @@ mod tests {
   </main>
   </body>
 </html>
-"
+"#
     );
   }
 
@@ -173,7 +172,7 @@ mod tests {
         index_sats: true,
         ..default()
       })),
-      r".*<nav>\s*<a href=/ title=home>Ordinals<sup>beta</sup></a>.*"
+      r".*<nav aria-label=Explorer>\s*<a class=brand .*ORD.*LITEVERSE.*</a>\s*<span class=brand-network>mainnet</span>.*"
     );
   }
 
@@ -187,7 +186,7 @@ mod tests {
         index_sats: false,
         ..default()
       })),
-      r".*<nav>\s*<a href=/ title=home>Ordinals<sup>beta</sup></a>.*<a href=/clock title=clock>.*</a>\s*<form action=/search.*",
+      r".*<nav aria-label=Explorer>\s*<a class=brand .*ORD.*LITEVERSE.*</a>\s*<span class=brand-network>mainnet</span>.*<a href=/clock title=clock[^>]*>.*</a>.*</div>\s*<form class=explorer-search action=/search.*",
     );
   }
 
@@ -201,7 +200,18 @@ mod tests {
         index_sats: true,
         ..default()
       })),
-      r".*<nav>\s*<a href=/ title=home>Ordinals<sup>signet</sup></a>.*"
+      r".*<nav aria-label=Explorer>\s*<a class=brand .*ORD.*LITEVERSE.*</a>\s*<span class=brand-network>signet</span>.*"
     );
+  }
+
+  #[test]
+  fn standalone_branding_does_not_use_the_marketplace_wordmark() {
+    let page = Foo.page(Arc::new(ServerConfig::default())).to_string();
+    assert!(page.contains("src=/static/liteverse-symbol-v1.png"));
+    assert!(page.contains("ORD<span class=brand-dot>&#8226;</span>LITEVERSE"));
+    assert!(page.contains("aria-label=\"Search the Litecoin explorer\""));
+    assert!(!page.contains("logo_txt"));
+    assert!(!page.contains("marketplace"));
+    assert!(!page.contains("/static/favicon"));
   }
 }

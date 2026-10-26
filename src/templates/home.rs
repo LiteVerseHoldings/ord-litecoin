@@ -7,7 +7,7 @@ pub(crate) struct HomeHtml {
 
 impl PageContent for HomeHtml {
   fn title(&self) -> String {
-    "Ordinals".to_string()
+    "ORD\u{2022}LITEVERSE".to_string()
   }
 }
 

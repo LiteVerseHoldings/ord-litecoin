@@ -1217,7 +1217,7 @@ impl Server {
 
   async fn favicon() -> ServerResult {
     Ok(
-      Self::static_asset(Path("/favicon.png".to_string()))
+      Self::static_asset(Path("/liteverse-symbol-v1.png".to_string()))
         .await
         .into_response(),
     )
@@ -4043,7 +4043,7 @@ mod tests {
       "/",
       StatusCode::OK,
       format!(
-        r".*<title>Ordinals</title>.*
+        r".*<title>ORD\u{{2022}}LITEVERSE</title>.*
 <h1>Latest Inscriptions</h1>
 <div class=thumbnails>
   <a href=/inscription/{}>.*</a>
@@ -4089,7 +4089,7 @@ mod tests {
       .assert_response_regex(
         "/",
         StatusCode::OK,
-        ".*<a href=/ title=home>Ordinals<sup>regtest</sup></a>.*",
+        ".*<span class=brand-network>regtest</span>.*",
       );
   }
 
@@ -4273,8 +4273,8 @@ mod tests {
         "/",
         StatusCode::OK,
         ".*
-      <a href=/clock title=clock>.*</a>
-      <a href=/rare.txt title=rare>.*</a>.*",
+      <a href=/clock title=clock aria-label=Clock>.*</a>
+      <a href=/rare.txt title=rare aria-label=\"Rare sats\">.*</a>.*",
       );
   }
 
@@ -4296,8 +4296,8 @@ mod tests {
       "/",
       StatusCode::OK,
       ".*
-      <a href=/clock title=clock>.*</a>
-      <a href=https://ynohtna92.github.io/ord-litecoin/.*",
+      <a href=/clock title=clock aria-label=Clock>.*</a>
+      <a href=https://github.com/LiteVerseHoldings/ord-litecoin#readme.*",
     );
   }
 

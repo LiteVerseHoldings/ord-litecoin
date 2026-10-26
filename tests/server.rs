@@ -243,7 +243,7 @@ fn inscription_page() {
     format!("/inscription/{inscription}"),
     format!(
       ".*<meta property=og:title content='Inscription 0'>.*
-.*<meta property=og:image content='https://.*/favicon.png'>.*
+.*<meta property=og:image content='https://.*/liteverse-symbol-v1.png'>.*
 .*<meta property=twitter:card content=summary>.*
 <h1>Inscription 0</h1>
 .*<iframe .* src=/preview/{inscription}></iframe>.*
