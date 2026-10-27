@@ -130,7 +130,8 @@ mod tests {
     <meta property=twitter:card content=summary>
     <title>Foo</title>
     <link rel=alternate href=/feed.xml type=application/rss\+xml title='Inscription Feed'>
-    <link rel=icon href=/static/liteverse-symbol-v1.png type=image/png>
+    <link rel=icon href=/static/ord-liteverse-icon-v2.png type=image/png sizes=64x64>
+    <link rel=apple-touch-icon href=/static/ord-liteverse-touch-v2.png sizes=180x180>
     <link rel=stylesheet href=/static/index.css>
     <link rel=stylesheet href=/static/modern-normalize.css>
     <link rel=stylesheet href=/static/ord-liteverse-v1.css>
@@ -208,6 +209,12 @@ mod tests {
   fn standalone_branding_does_not_use_the_marketplace_wordmark() {
     let page = Foo.page(Arc::new(ServerConfig::default())).to_string();
     assert!(page.contains("src=/static/liteverse-symbol-v1.png"));
+    assert!(
+      page.contains("rel=icon href=/static/ord-liteverse-icon-v2.png type=image/png sizes=64x64")
+    );
+    assert!(
+      page.contains("rel=apple-touch-icon href=/static/ord-liteverse-touch-v2.png sizes=180x180")
+    );
     assert!(page.contains("ORD<span class=brand-dot>&#8226;</span>LITEVERSE"));
     assert!(page.contains("aria-label=\"Search the Litecoin explorer\""));
     assert!(page.contains("href=https://discord.gg/Ffs5fTuCf7 title=discord aria-label=Community"));

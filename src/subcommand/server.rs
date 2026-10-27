@@ -190,6 +190,8 @@ impl Server {
         .route("/content/:inscription_id", get(Self::content))
         .route("/faq", get(Self::faq))
         .route("/favicon.ico", get(Self::favicon))
+        .route("/apple-touch-icon.png", get(Self::touch_icon))
+        .route("/apple-touch-icon-precomposed.png", get(Self::touch_icon))
         .route("/feed.xml", get(Self::feed))
         .route("/input/:block/:transaction/:input", get(Self::input))
         .route("/inscription/:inscription_query", get(Self::inscription))
@@ -1217,7 +1219,15 @@ impl Server {
 
   async fn favicon() -> ServerResult {
     Ok(
-      Self::static_asset(Path("/liteverse-symbol-v1.png".to_string()))
+      Self::static_asset(Path("/ord-liteverse-icon-v2.png".to_string()))
+        .await
+        .into_response(),
+    )
+  }
+
+  async fn touch_icon() -> ServerResult {
+    Ok(
+      Self::static_asset(Path("/ord-liteverse-touch-v2.png".to_string()))
         .await
         .into_response(),
     )
@@ -1268,12 +1278,12 @@ impl Server {
   }
 
   async fn static_asset(Path(path): Path<String>) -> ServerResult {
-    let content = StaticAssets::get(if let Some(stripped) = path.strip_prefix('/') {
-      stripped
-    } else {
-      &path
-    })
-    .ok_or_not_found(|| format!("asset {path}"))?;
+    let path = path.strip_prefix('/').unwrap_or(&path);
+    let path = match path {
+      "favicon.png" | "favicon.svg" => "ord-liteverse-icon-v2.png",
+      _ => path,
+    };
+    let content = StaticAssets::get(path).ok_or_not_found(|| format!("asset {path}"))?;
     let body = body::boxed(body::Full::from(content.data));
     let mime = mime_guess::from_path(path).first_or_octet_stream();
     Ok(
@@ -4188,7 +4198,41 @@ mod tests {
 
   #[test]
   fn favicon() {
-    TestServer::new().assert_response_regex("/favicon.ico", StatusCode::OK, r".*");
+    let server = TestServer::new();
+    let expected: &[u8] = include_bytes!("../../static/ord-liteverse-icon-v2.png");
+    for path in [
+      "/favicon.ico",
+      "/static/favicon.png",
+      "/static/favicon.svg",
+      "/static/ord-liteverse-icon-v2.png",
+    ] {
+      let response = server.get(path);
+      assert_eq!(response.status(), StatusCode::OK);
+      assert_eq!(
+        response.headers().get(header::CONTENT_TYPE).unwrap(),
+        "image/png"
+      );
+      assert_eq!(&response.bytes().unwrap()[..], expected);
+    }
+  }
+
+  #[test]
+  fn apple_touch_icon() {
+    let server = TestServer::new();
+    let expected: &[u8] = include_bytes!("../../static/ord-liteverse-touch-v2.png");
+    for path in [
+      "/apple-touch-icon.png",
+      "/apple-touch-icon-precomposed.png",
+      "/static/ord-liteverse-touch-v2.png",
+    ] {
+      let response = server.get(path);
+      assert_eq!(response.status(), StatusCode::OK);
+      assert_eq!(
+        response.headers().get(header::CONTENT_TYPE).unwrap(),
+        "image/png"
+      );
+      assert_eq!(&response.bytes().unwrap()[..], expected);
+    }
   }
 
   #[test]
