@@ -905,13 +905,14 @@ impl Server {
             let addresses = tx
               .output
               .iter()
-              .filter_map(|output| {
+              .map(|output| {
+                // Keep one slot per vout: OP_RETURN must not shift later recipients.
                 server_config
                   .chain
                   .address_from_script(&output.script_pubkey)
-                  .ok()
+                  .map(|address| address.to_string())
+                  .unwrap_or_default()
               })
-              .map(|address| address.to_string())
               .collect::<Vec<_>>();
             (txid, addresses)
           })
@@ -919,7 +920,7 @@ impl Server {
 
         let inscriptions = index.get_inscriptions_in_block(height)?;
 
-        let inscriptions_per_tx: HashMap<_, _> = inscriptions
+        let inscriptions_per_tx: HashMap<_, Vec<_>> = inscriptions
           .iter()
           .filter_map(
             |inscription_id| match index.get_inscription_by_id(inscription_id.clone()) {
@@ -939,9 +940,10 @@ impl Server {
               _ => None,
             },
           )
-          .collect();
-
-        let inscriptions_placeholder: Vec<i32> = vec![];
+          .fold(HashMap::new(), |mut grouped, (txid, inscription)| {
+            grouped.entry(txid).or_insert_with(Vec::new).push(inscription);
+            grouped
+          });
 
         axum::Json(serde_json::json!({
           "hash": block.header.block_hash(),
@@ -959,7 +961,7 @@ impl Server {
               "inputs": inputs_per_tx.get(&txid),
               "outputs": outputs_per_tx.get(&txid),
               "output_addresses": output_addresses_per_tx.get(&txid),
-              "inscriptions": inscriptions_per_tx.get(&txid).iter().map(|inscription| {
+              "inscriptions": inscriptions_per_tx.get(&txid).into_iter().flatten().map(|inscription| {
                 serde_json::json!({
                   "inscription_id": inscription.0,
                   "content_type": inscription.1.as_ref(),
@@ -969,7 +971,7 @@ impl Server {
               }).collect::<Vec<_>>(),
             })
           }).collect::<Vec<_>>(),
-          "inscriptions": inscriptions_placeholder,
+          "inscriptions": inscriptions,
           "_links": {
             "self": {
               "href": format!("/block/{}", block.header.block_hash()),

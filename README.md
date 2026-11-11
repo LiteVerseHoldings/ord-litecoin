@@ -1,3 +1,24 @@
+## Local token-trade block-feed candidate - not deployed
+
+This branch starts at organization `api-15` commit
+`30825f67ccca4921c8f96e6a7d212cd3660f1f70`. The detailed block feed keeps an
+address slot for every output, using an empty string for non-address scripts,
+and groups every inscription belonging to a transaction. This prevents output
+positions shifting and multi-inscription transactions losing all but one entry.
+The block-level inscription list also contains the actual indexed identifiers.
+
+An isolated native regtest verified those feed properties with a real mined
+multi-envelope transaction and coinbase witness-commitment outputs. The paired
+organization-based LTC-20 indexer used the feed to validate real fake-coin swaps
+signed by the wallet and credit the exact seller amount. Its mainnet-ready
+checkpoint remains forbidden on regtest. This is not a historical mainnet replay
+or verification that this source matches the currently running Ord executable.
+
+The paired indexer candidate is [ord20-indexer](https://github.com/LiteVerseHoldings/ord20-indexer/tree/master).
+Full mainnet replay/reconciliation, exact live-build provenance and the complete
+hosted purchase flow with the packaged wallet remain release gates. No production
+binary, index or service was replaced, restarted or deleted.
+
 `ord`
 =====
 
