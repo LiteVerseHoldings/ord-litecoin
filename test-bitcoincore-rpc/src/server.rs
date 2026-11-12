@@ -481,6 +481,7 @@ impl Api for Server {
     verbose: Option<bool>,
     blockhash: Option<BlockHash>,
   ) -> Result<Value, jsonrpc_core::Error> {
+    self.state().raw_transaction_requests += 1;
     assert_eq!(blockhash, None, "Blockhash param is unsupported");
     if verbose.unwrap_or(false) {
       match self.state().transactions.get(&txid) {

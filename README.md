@@ -6,6 +6,10 @@ address slot for every output, using an empty string for non-address scripts,
 and groups every inscription belonging to a transaction. This prevents output
 positions shifting and multi-inscription transactions losing all but one entry.
 The block-level inscription list also contains the actual indexed identifiers.
+The JSON block feed reads inscription payloads from the reveal transactions
+already present in the fetched block, parsing each relevant transaction once.
+This avoids a redundant Core transaction request for every inscription while
+keeping the indexed identifiers, inscription numbers and transaction order.
 
 An isolated native regtest verified those feed properties with a real mined
 multi-envelope transaction and coinbase witness-commitment outputs. The paired

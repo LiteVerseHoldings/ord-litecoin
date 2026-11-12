@@ -210,6 +210,10 @@ impl Handle {
     self.state.lock().unwrap().clear();
   }
 
+  pub fn raw_transaction_requests(&self) -> usize {
+    self.state().raw_transaction_requests
+  }
+
   pub fn wallets(&self) -> BTreeSet<String> {
     self.state().wallets.clone()
   }

@@ -724,9 +724,10 @@ impl Server {
     Path(DeserializeFromStr(address)): Path<DeserializeFromStr<bitcoin::Address<NetworkUnchecked>>>,
     Query(query): Query<AddressQuery>,
   ) -> ServerResult<Response> {
-    let inscription_ids = index.get_inscriptions_by_address(&address)
-        .unwrap_or_else(|_| None)
-        .unwrap_or_else(|| Vec::new());
+    let inscription_ids = index
+      .get_inscriptions_by_address(&address)
+      .unwrap_or_else(|_| None)
+      .unwrap_or_else(|| Vec::new());
 
     let enrich = query.full.unwrap_or(false);
 
@@ -920,28 +921,45 @@ impl Server {
 
         let inscriptions = index.get_inscriptions_in_block(height)?;
 
+        // The full block already contains the reveal transactions and witnesses.
+        // Parse each relevant transaction once instead of fetching it again over
+        // Core RPC for every inscription (including repeated multi-inscriptions).
+        let inscription_txids: HashSet<_> = inscriptions.iter().map(|id| id.txid).collect();
+        let inscription_envelopes: HashMap<_, _> = block
+          .txdata
+          .iter()
+          .filter_map(|tx| {
+            let txid = tx.txid();
+            inscription_txids
+              .contains(&txid)
+              .then(|| (txid, ParsedEnvelope::from_transaction(tx)))
+          })
+          .collect();
+
         let inscriptions_per_tx: HashMap<_, Vec<_>> = inscriptions
           .iter()
-          .filter_map(
-            |inscription_id| match index.get_inscription_by_id(inscription_id.clone()) {
-              Ok(Some(inscription)) => {
-                let content_type = inscription.content_type().map(|s| encode(s));
-                let content = inscription.into_body().map(|s| encode(s));
-                let inscription_number = index
-                  .get_inscription_entry(inscription_id.clone())
-                  .unwrap()
-                  .unwrap()
-                  .inscription_number;
-                Some((
-                  inscription_id.txid,
-                  (inscription_id, content_type, content, inscription_number),
-                ))
-              }
-              _ => None,
-            },
-          )
+          .filter_map(|inscription_id| {
+            let inscription = &inscription_envelopes
+              .get(&inscription_id.txid)?
+              .get(inscription_id.index as usize)?
+              .payload;
+            let entry = index
+              .get_inscription_entry(*inscription_id)
+              .unwrap()
+              .unwrap();
+            let content_type = inscription.content_type().map(|s| encode(s));
+            let content = inscription.body().map(|s| encode(s));
+            let inscription_number = entry.inscription_number;
+            Some((
+              inscription_id.txid,
+              (inscription_id, content_type, content, inscription_number),
+            ))
+          })
           .fold(HashMap::new(), |mut grouped, (txid, inscription)| {
-            grouped.entry(txid).or_insert_with(Vec::new).push(inscription);
+            grouped
+              .entry(txid)
+              .or_insert_with(Vec::new)
+              .push(inscription);
             grouped
           });
 
@@ -2120,6 +2138,74 @@ mod tests {
       },
       Err(err) => panic!("error parsing arguments: {err}"),
     }
+  }
+
+  #[test]
+  fn block_json_reuses_reveal_transactions_and_preserves_indexed_inscriptions() {
+    let server = TestServer::new_with_regtest_with_json_api();
+    server.mine_blocks(3);
+
+    let first = server.bitcoin_rpc_server.broadcast_tx(TransactionTemplate {
+      inputs: &[
+        (
+          1,
+          0,
+          0,
+          inscription("application/json", "first").to_witness(),
+        ),
+        (2, 0, 0, inscription("text/plain", "second").to_witness()),
+      ],
+      ..Default::default()
+    });
+    let second = server.bitcoin_rpc_server.broadcast_tx(TransactionTemplate {
+      inputs: &[(3, 0, 0, inscription("text/plain", "third").to_witness())],
+      ..Default::default()
+    });
+    server.mine_blocks(1);
+
+    let ids = server.index.get_inscriptions_in_block(4).unwrap();
+    assert_eq!(ids.len(), 3);
+    let expected: HashMap<_, _> = ids
+      .iter()
+      .map(|id| {
+        let inscription = server.index.get_inscription_by_id(*id).unwrap().unwrap();
+        let entry = server.index.get_inscription_entry(*id).unwrap().unwrap();
+        (*id, (inscription, entry.inscription_number))
+      })
+      .collect();
+
+    let before = server.bitcoin_rpc_server.raw_transaction_requests();
+    let block: serde_json::Value = server.get_json("/block/4");
+    assert_eq!(server.bitcoin_rpc_server.raw_transaction_requests(), before);
+    assert_eq!(block["inscriptions"], serde_json::json!(ids));
+
+    let transactions = block["transactions"].as_array().unwrap();
+    assert_eq!(transactions.len(), 3);
+    assert_eq!(transactions[1]["transaction"], first.to_string());
+    assert_eq!(transactions[2]["transaction"], second.to_string());
+    let mut actual_ids = Vec::new();
+    for tx in transactions {
+      for value in tx["inscriptions"].as_array().unwrap() {
+        let id: InscriptionId = value["inscription_id"].as_str().unwrap().parse().unwrap();
+        let (payload, number) = &expected[&id];
+        assert_eq!(
+          value["content_type"],
+          serde_json::json!(payload.content_type().map(encode))
+        );
+        assert_eq!(
+          value["content"],
+          serde_json::json!(payload.body().map(encode))
+        );
+        assert_eq!(value["inscription_number"], *number);
+        actual_ids.push(id);
+      }
+    }
+    assert_eq!(actual_ids.len(), 3);
+    assert_eq!(
+      actual_ids.iter().copied().collect::<HashSet<_>>(),
+      ids.into_iter().collect()
+    );
+    assert_eq!(transactions[1]["inscriptions"].as_array().unwrap().len(), 2);
   }
 
   #[test]
