@@ -24,6 +24,8 @@ private binary passed the 13-check shared-wallet rehearsal; the initial
 `api-15` candidate stopped at the legacy inscription step before this correction.
 Three library regressions verify locked reservation visibility and retention,
 including an unconfirmed reservation, and rejection of missing unlocked outputs.
+The legacy `wallet cardinals` listing also excludes Core-locked outputs, keeping
+modern Rune holdings and commitment reservations out of selectable funding.
 
 ## Earlier token-trade block-feed candidate notes
 

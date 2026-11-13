@@ -14,6 +14,7 @@ pub(crate) fn run(wallet: String, options: Options) -> SubcommandResult {
   let client = bitcoin_rpc_client_for_wallet_command(wallet, &options)?;
 
   let unspent_outputs = get_unspent_outputs(&client, &index)?;
+  let locked_outputs = get_locked_outputs(&client)?;
 
   let inscribed_utxos = index
     .get_inscriptions(&unspent_outputs)?
@@ -24,7 +25,7 @@ pub(crate) fn run(wallet: String, options: Options) -> SubcommandResult {
   let cardinal_utxos = unspent_outputs
     .iter()
     .filter_map(|(output, amount)| {
-      if inscribed_utxos.contains(output) {
+      if inscribed_utxos.contains(output) || locked_outputs.contains(output) {
         None
       } else {
         Some(CardinalUtxo {
