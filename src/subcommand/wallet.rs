@@ -100,6 +100,11 @@ pub(crate) fn get_unspent_outputs(
       }),
   );
 
+  // Only outputs offered for spending must already be indexed. Shared-wallet
+  // reservations may include unconfirmed Rune commitments; retain their locks
+  // and amounts without requiring those outputs to exist in the legacy index.
+  index.check_sync(&utxos)?;
+
   let locked_utxos: BTreeSet<OutPoint> = get_locked_outputs(client)?;
 
   for outpoint in locked_utxos {
@@ -113,9 +118,60 @@ pub(crate) fn get_unspent_outputs(
     );
   }
 
-  index.check_sync(&utxos)?;
-
   Ok(utxos)
+}
+
+#[cfg(test)]
+mod tests {
+  use {super::*, crate::index::testing::Context, test_bitcoincore_rpc::TransactionTemplate};
+
+  #[test]
+  fn locked_unconfirmed_reservations_do_not_block_indexed_spendable_outputs() {
+    let context = Context::builder().build();
+    context.mine_blocks(1);
+    let txid = context.rpc_server.broadcast_tx(TransactionTemplate {
+      inputs: &[(1, 0, 0, Witness::new())],
+      ..Default::default()
+    });
+    let reserved = OutPoint::new(txid, 0);
+    context.rpc_server.lock(reserved);
+    let client = context.options.bitcoin_rpc_client(None).unwrap();
+
+    let outputs = get_unspent_outputs(&client, &context.index).unwrap();
+
+    assert!(outputs.contains_key(&reserved));
+    assert!(get_locked_outputs(&client).unwrap().contains(&reserved));
+    assert!(context
+      .index
+      .check_sync(&BTreeMap::from([(reserved, outputs[&reserved])]))
+      .is_err());
+  }
+
+  #[test]
+  fn unlocked_outputs_missing_from_the_index_still_fail_closed() {
+    let context = Context::builder().build();
+    context.rpc_server.mine_blocks(1);
+    let client = context.options.bitcoin_rpc_client(None).unwrap();
+
+    assert!(get_unspent_outputs(&client, &context.index)
+      .unwrap_err()
+      .to_string()
+      .contains("not in ord index"));
+  }
+
+  #[test]
+  fn confirmed_locked_outputs_remain_visible_and_locked() {
+    let context = Context::builder().build();
+    let blocks = context.mine_blocks(1);
+    let reserved = OutPoint::new(blocks[0].txdata[0].txid(), 0);
+    context.rpc_server.lock(reserved);
+    let client = context.options.bitcoin_rpc_client(None).unwrap();
+
+    let outputs = get_unspent_outputs(&client, &context.index).unwrap();
+
+    assert_eq!(outputs[&reserved], Amount::from_sat(50 * COIN_VALUE));
+    assert!(get_locked_outputs(&client).unwrap().contains(&reserved));
+  }
 }
 
 pub(crate) fn get_unspent_output_ranges(

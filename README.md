@@ -8,13 +8,22 @@ the original input order, including repeats. Responses with missing, duplicate
 or out-of-range IDs, RPC errors, invalid transactions or a transaction ID that
 does not match the request are rejected before supplying input values.
 
-All 700 library tests pass. A regression test fails before this change and
+All 703 library tests pass. A regression test fails before this change and
 verifies that five inputs referring to two transactions make two Core RPC
 requests while returning the same five transactions in order. Additional tests
 cover unordered replies, malformed replies and empty batches. This measures
 duplicate-fetch reduction; overall private-index throughput remains unmeasured.
 The candidate adds no persistent cache and changes no production executable,
 index, service, shared-wallet guard or wallet configuration.
+
+Shared-wallet compatibility also requires checking index synchronization for
+Core's spendable outputs before adding locked outputs to the wallet view.
+Unconfirmed Rune commitment reservations stay locked and remain visible, while
+unlocked outputs missing from the index still fail closed. The exact original
+private binary passed the 13-check shared-wallet rehearsal; the initial
+`api-15` candidate stopped at the legacy inscription step before this correction.
+Three library regressions verify locked reservation visibility and retention,
+including an unconfirmed reservation, and rejection of missing unlocked outputs.
 
 ## Earlier token-trade block-feed candidate notes
 

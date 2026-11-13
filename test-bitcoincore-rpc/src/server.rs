@@ -483,8 +483,15 @@ impl Api for Server {
   ) -> Result<Value, jsonrpc_core::Error> {
     self.state().raw_transaction_requests += 1;
     assert_eq!(blockhash, None, "Blockhash param is unsupported");
+    let state = self.state();
+    let transaction = state.transactions.get(&txid).or_else(|| {
+      state
+        .mempool
+        .iter()
+        .find(|transaction| transaction.txid() == txid)
+    });
     if verbose.unwrap_or(false) {
-      match self.state().transactions.get(&txid) {
+      match transaction {
         Some(_) => Ok(
           serde_json::to_value(GetRawTransactionResult {
             in_active_chain: Some(true),
@@ -507,7 +514,7 @@ impl Api for Server {
         None => Err(Self::not_found()),
       }
     } else {
-      match self.state().transactions.get(&txid) {
+      match transaction {
         Some(tx) => Ok(Value::String(hex::encode(serialize(tx)))),
         None => Err(Self::not_found()),
       }
