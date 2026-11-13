@@ -11,6 +11,175 @@ pub(crate) struct Fetcher {
   url: Uri,
 }
 
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::{
+    io::{Read, Write},
+    net::TcpListener,
+    thread,
+  };
+
+  #[test]
+  fn duplicate_funding_transactions_are_fetched_once_in_original_order() {
+    let core = test_bitcoincore_rpc::builder()
+      .network(Network::Regtest)
+      .build();
+    let blocks = core.mine_blocks(2);
+    let first = blocks[0].txdata[0].clone();
+    let second = blocks[1].txdata[0].clone();
+    let fetcher = Fetcher {
+      auth: "Basic dXNlcm5hbWU6cGFzc3dvcmQ=".into(),
+      client: Client::new(),
+      url: core.url().parse().unwrap(),
+    };
+    let before = core.raw_transaction_requests();
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let actual = runtime
+      .block_on(fetcher.get_transactions(vec![
+        first.txid(),
+        second.txid(),
+        first.txid(),
+        first.txid(),
+        second.txid(),
+      ]))
+      .unwrap();
+    assert_eq!(
+      actual,
+      vec![first.clone(), second.clone(), first.clone(), first, second]
+    );
+    assert_eq!(core.raw_transaction_requests() - before, 2);
+  }
+
+  fn funding_transactions() -> (Transaction, Transaction) {
+    let core = test_bitcoincore_rpc::builder()
+      .network(Network::Regtest)
+      .build();
+    let blocks = core.mine_blocks(2);
+    (blocks[0].txdata[0].clone(), blocks[1].txdata[0].clone())
+  }
+
+  fn one_batch(
+    respond: impl FnOnce(Vec<Value>) -> Vec<Value> + Send + 'static,
+  ) -> (Fetcher, thread::JoinHandle<()>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = thread::spawn(move || {
+      let (mut stream, _) = listener.accept().unwrap();
+      stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(2)))
+        .unwrap();
+      let mut header = Vec::new();
+      while !header.ends_with(b"\r\n\r\n") {
+        assert!(header.len() < 16384);
+        let mut byte = [0];
+        stream.read_exact(&mut byte).unwrap();
+        header.push(byte[0]);
+      }
+      let header = String::from_utf8(header).unwrap();
+      let size = header
+        .lines()
+        .find_map(|line| {
+          let (name, value) = line.split_once(':')?;
+          name
+            .eq_ignore_ascii_case("content-length")
+            .then(|| value.trim().parse::<usize>().unwrap())
+        })
+        .unwrap();
+      assert!(size < 1024 * 1024);
+      let mut body = vec![0; size];
+      stream.read_exact(&mut body).unwrap();
+      let requests: Vec<Value> = serde_json::from_slice(&body).unwrap();
+      let response = serde_json::to_vec(&respond(requests)).unwrap();
+      write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", response.len()).unwrap();
+      stream.write_all(&response).unwrap();
+    });
+    (
+      Fetcher {
+        auth: "Basic dXNlcm5hbWU6cGFzc3dvcmQ=".into(),
+        client: Client::new(),
+        url: format!("http://{address}").parse().unwrap(),
+      },
+      server,
+    )
+  }
+
+  fn replies(first: &Transaction, second: &Transaction) -> Vec<Value> {
+    vec![
+      json!({"id":0,"error":null,"result":hex::encode(bitcoin::consensus::serialize(first))}),
+      json!({"id":1,"error":null,"result":hex::encode(bitcoin::consensus::serialize(second))}),
+    ]
+  }
+
+  #[test]
+  fn out_of_order_unique_replies_restore_original_input_positions() {
+    let (first, second) = funding_transactions();
+    let response = replies(&first, &second).into_iter().rev().collect();
+    let (fetcher, server) = one_batch(move |requests| {
+      assert_eq!(requests.len(), 2);
+      assert!(requests
+        .iter()
+        .all(|request| request["method"] == "getrawtransaction"));
+      response
+    });
+    let actual = tokio::runtime::Runtime::new()
+      .unwrap()
+      .block_on(fetcher.get_transactions(vec![first.txid(), second.txid(), first.txid()]))
+      .unwrap();
+    server.join().unwrap();
+    assert_eq!(actual, vec![first.clone(), second, first]);
+  }
+
+  #[test]
+  fn malformed_or_unrelated_batch_replies_refuse_input_values() {
+    let (first, second) = funding_transactions();
+    for case in 0..7 {
+      let mut response = replies(&first, &second);
+      match case {
+        0 => response[1]["id"] = json!(0),
+        1 => {
+          response.pop();
+        }
+        2 => response[1]["id"] = json!(2),
+        3 => response[1]["result"] = response[0]["result"].clone(),
+        4 => response[1]["result"] = json!("not hexadecimal"),
+        5 => {
+          response[1]["result"] = Value::Null;
+          response[1]["error"] = json!({"code":-5,"message":"synthetic transaction unavailable"});
+        }
+        6 => response[1]["result"] = Value::Null,
+        _ => unreachable!(),
+      }
+      let (fetcher, server) = one_batch(move |requests| {
+        assert_eq!(requests.len(), 2);
+        response
+      });
+      let result = tokio::runtime::Runtime::new()
+        .unwrap()
+        .block_on(fetcher.get_transactions(vec![first.txid(), second.txid(), first.txid()]));
+      server.join().unwrap();
+      assert!(
+        result.is_err(),
+        "Invalid reply case {case} supplied input values"
+      );
+    }
+  }
+
+  #[test]
+  fn empty_input_batch_does_not_contact_core() {
+    let fetcher = Fetcher {
+      auth: String::new(),
+      client: Client::new(),
+      url: "http://127.0.0.1:0".parse().unwrap(),
+    };
+    assert!(tokio::runtime::Runtime::new()
+      .unwrap()
+      .block_on(fetcher.get_transactions(Vec::new()))
+      .unwrap()
+      .is_empty());
+  }
+}
+
 #[derive(Deserialize, Debug)]
 struct JsonResponse<T> {
   error: Option<JsonError>,
@@ -50,11 +219,29 @@ impl Fetcher {
       return Ok(Vec::new());
     }
 
-    let mut reqs = Vec::with_capacity(txids.len());
-    for (i, txid) in txids.iter().enumerate() {
+    // Different missing outpoints may belong to the same funding transaction.
+    // Fetch and decode it once, then restore one result per original input.
+    let mut unique_txids = Vec::new();
+    let mut positions = HashMap::new();
+    let mut input_order = Vec::with_capacity(txids.len());
+    for txid in txids {
+      let position = match positions.get(&txid) {
+        Some(&position) => position,
+        None => {
+          let position = unique_txids.len();
+          unique_txids.push(txid);
+          positions.insert(txid, position);
+          position
+        }
+      };
+      input_order.push(position);
+    }
+
+    let mut reqs = Vec::with_capacity(unique_txids.len());
+    for (i, txid) in unique_txids.iter().enumerate() {
       let req = json!({
         "jsonrpc": "2.0",
-        "id": i, // Use the index as id, so we can quickly sort the response
+        "id": i, // Associate each response with its requested transaction.
         "method": "getrawtransaction",
         "params": [ txid ]
       });
@@ -63,7 +250,7 @@ impl Fetcher {
 
     let body = Value::Array(reqs).to_string();
 
-    let mut results: Vec<JsonResponse<String>>;
+    let results: Vec<JsonResponse<String>>;
     let mut retries = 0;
 
     loop {
@@ -99,27 +286,41 @@ impl Fetcher {
       ));
     }
 
-    // Results from batched JSON-RPC requests can come back in any order, so we must sort them by id
-    results.sort_by(|a, b| a.id.cmp(&b.id));
+    ensure!(
+      results.len() == unique_txids.len(),
+      "Incomplete batched JSON-RPC transaction response"
+    );
+    let mut by_id: Vec<Option<Transaction>> = vec![None; unique_txids.len()];
+    for response in results {
+      // Core may return batch replies in any order. Never let a missing,
+      // repeated or unrelated reply shift an input's previous-output value.
+      let id = response.id;
+      ensure!(
+        id < by_id.len() && by_id[id].is_none(),
+        "Invalid or duplicate batched JSON-RPC response id"
+      );
+      let raw = response
+        .result
+        .ok_or_else(|| anyhow!("Missing result for batched JSON-RPC response"))?;
+      let bytes = hex::decode(raw)
+        .map_err(|e| anyhow!("Result for batched JSON-RPC response not valid hex: {e}"))?;
+      let transaction: Transaction = bitcoin::consensus::deserialize(&bytes)
+        .map_err(|e| anyhow!("Result for batched JSON-RPC response not valid bitcoin tx: {e}"))?;
+      ensure!(
+        transaction.txid() == unique_txids[id],
+        "Batched JSON-RPC transaction does not match requested transaction id"
+      );
+      by_id[id] = Some(transaction);
+    }
 
-    let txs = results
+    input_order
       .into_iter()
-      .map(|res| {
-        res
-          .result
-          .ok_or_else(|| anyhow!("Missing result for batched JSON-RPC response"))
-          .and_then(|str| {
-            hex::decode(str)
-              .map_err(|e| anyhow!("Result for batched JSON-RPC response not valid hex: {e}"))
-          })
-          .and_then(|hex| {
-            bitcoin::consensus::deserialize(&hex).map_err(|e| {
-              anyhow!("Result for batched JSON-RPC response not valid bitcoin tx: {e}")
-            })
-          })
+      .map(|position| {
+        by_id[position]
+          .clone()
+          .ok_or_else(|| anyhow!("Missing requested transaction in batched JSON-RPC response"))
       })
-      .collect::<Result<Vec<Transaction>>>()?;
-    Ok(txs)
+      .collect()
   }
 
   async fn try_get_transactions(&self, body: String) -> Result<Vec<JsonResponse<String>>> {

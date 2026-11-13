@@ -1,4 +1,25 @@
-## Local token-trade block-feed candidate - not deployed
+## Private Ord 0.15 indexing candidate - not deployed
+
+This candidate starts at `api-15` commit
+`91c60a6d4229826778ddb518e800fb301cedb3ec` and keeps Ord 0.15.0, its existing
+index format and wallet commands. Within each input-fetch RPC batch, repeated
+funding transaction IDs are requested and decoded once. Results are restored to
+the original input order, including repeats. Responses with missing, duplicate
+or out-of-range IDs, RPC errors, invalid transactions or a transaction ID that
+does not match the request are rejected before supplying input values.
+
+All 700 library tests pass. A regression test fails before this change and
+verifies that five inputs referring to two transactions make two Core RPC
+requests while returning the same five transactions in order. Additional tests
+cover unordered replies, malformed replies and empty batches. This measures
+duplicate-fetch reduction; overall private-index throughput remains unmeasured.
+The candidate adds no persistent cache and changes no production executable,
+index, service, shared-wallet guard or wallet configuration.
+
+## Earlier token-trade block-feed candidate notes
+
+The following notes describe the earlier block-feed validation, before the
+public `api-15` deployment. They do not describe a private-inscriber deployment.
 
 This branch starts at organization `api-15` commit
 `30825f67ccca4921c8f96e6a7d212cd3660f1f70`. The detailed block feed keeps an
