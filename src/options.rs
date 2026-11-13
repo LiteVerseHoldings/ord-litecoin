@@ -20,6 +20,12 @@ pub struct Options {
     help = "Use <CHAIN>."
   )]
   pub(crate) chain_argument: Chain,
+  #[arg(
+    long,
+    value_parser = clap::value_parser!(u32).range(1..),
+    help = "Commit index updates every <COMMIT_INTERVAL> blocks. Defaults to 5000."
+  )]
+  pub(crate) commit_interval: Option<u32>,
   #[arg(long, help = "Load configuration from <CONFIG>.")]
   pub(crate) config: Option<PathBuf>,
   #[arg(long, help = "Load configuration from <CONFIG_DIR>.")]
@@ -71,6 +77,10 @@ pub struct Options {
 }
 
 impl Options {
+  pub(crate) fn commit_interval(&self) -> u32 {
+    self.commit_interval.unwrap_or(5000)
+  }
+
   pub(crate) fn chain(&self) -> Chain {
     if self.signet {
       Chain::Signet
@@ -770,6 +780,34 @@ mod tests {
       Arguments::try_parse_from(["ord", "--db-cache-size", "16000000000", "index", "update"])
         .unwrap();
     assert_eq!(arguments.options.db_cache_size, Some(16000000000));
+  }
+
+  #[test]
+  fn commit_interval_defaults_to_5000_and_accepts_2500() {
+    assert_eq!(Options::default().commit_interval(), 5000);
+    assert_eq!(
+      Arguments::try_parse_from(["ord", "index", "update"])
+        .unwrap()
+        .options
+        .commit_interval(),
+      5000
+    );
+    assert_eq!(
+      Arguments::try_parse_from(["ord", "--commit-interval", "2500", "index", "update"])
+        .unwrap()
+        .options
+        .commit_interval(),
+      2500
+    );
+  }
+
+  #[test]
+  fn commit_interval_rejects_zero_and_invalid_values() {
+    for value in ["0", "-1", "invalid", "4294967296"] {
+      assert!(
+        Arguments::try_parse_from(["ord", "--commit-interval", value, "index", "update"]).is_err()
+      );
+    }
   }
 
   #[test]

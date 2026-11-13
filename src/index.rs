@@ -2151,6 +2151,83 @@ mod tests {
   use {super::*, crate::index::testing::Context};
 
   #[test]
+  fn commit_intervals_preserve_inscriptions_and_output_values() {
+    let mut expected_snapshot = None;
+    for interval in [2u64, 2500, 5000] {
+      let context = Context::builder()
+        .arg(format!("--commit-interval={interval}"))
+        .build();
+      let commits_before = context.index.statistic(Statistic::Commits);
+      context.rpc_server.mine_blocks(1);
+      let content = inscription("text/plain;charset=utf-8", "commit interval fixture");
+      let first = context.rpc_server.broadcast_tx(TransactionTemplate {
+        inputs: &[(1, 0, 0, content.to_witness())],
+        ..Default::default()
+      });
+      context.rpc_server.mine_blocks(1);
+      let second = context.rpc_server.broadcast_tx(TransactionTemplate {
+        inputs: &[(2, 1, 0, Witness::new())],
+        ..Default::default()
+      });
+      context.rpc_server.mine_blocks(1);
+      let last = context.rpc_server.broadcast_tx(TransactionTemplate {
+        inputs: &[(3, 1, 0, Witness::new())],
+        ..Default::default()
+      });
+      context.rpc_server.mine_blocks(2);
+      context.index.update().unwrap();
+
+      assert_eq!(context.index.block_count().unwrap(), 6);
+      assert_eq!(
+        context.index.statistic(Statistic::Commits) - commits_before,
+        (5 + interval - 1) / interval
+      );
+      let id = InscriptionId {
+        txid: first,
+        index: 0,
+      };
+      let location = SatPoint {
+        outpoint: OutPoint::new(last, 0),
+        offset: 0,
+      };
+      assert_eq!(
+        context.index.get_inscription_by_id(id).unwrap(),
+        Some(content)
+      );
+      assert_eq!(
+        context.index.get_inscription_satpoint_by_id(id).unwrap(),
+        Some(location)
+      );
+      let read = context.index.database.begin_read().unwrap();
+      let values = read.open_table(OUTPOINT_TO_VALUE).unwrap();
+      assert!(values
+        .get(&OutPoint::new(first, 0).store())
+        .unwrap()
+        .is_none());
+      assert!(values
+        .get(&OutPoint::new(second, 0).store())
+        .unwrap()
+        .is_none());
+      let value = values
+        .get(&location.outpoint.store())
+        .unwrap()
+        .unwrap()
+        .value();
+      assert_eq!(value, 50 * COIN_VALUE);
+      let snapshot = (
+        context.index.get_inscription_by_id(id).unwrap(),
+        location,
+        value,
+      );
+      if let Some(expected) = &expected_snapshot {
+        assert_eq!(&snapshot, expected);
+      } else {
+        expected_snapshot = Some(snapshot);
+      }
+    }
+  }
+
+  #[test]
   fn height_limit() {
     {
       let context = Context::builder().args(["--height-limit", "0"]).build();
@@ -4560,7 +4637,9 @@ mod tests {
 
   #[test]
   fn recover_from_reorg() {
-    for mut context in Context::configurations() {
+    let mut configurations = Context::configurations();
+    configurations.push(Context::builder().args(["--commit-interval", "2"]).build());
+    for mut context in configurations {
       context.index.set_durability(redb::Durability::Immediate);
 
       context.mine_blocks(1);

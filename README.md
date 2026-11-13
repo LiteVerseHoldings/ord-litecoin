@@ -8,7 +8,7 @@ the original input order, including repeats. Responses with missing, duplicate
 or out-of-range IDs, RPC errors, invalid transactions or a transaction ID that
 does not match the request are rejected before supplying input values.
 
-All 703 library tests pass. A regression test fails before this change and
+All 706 library tests pass. A regression test fails before this change and
 verifies that five inputs referring to two transactions make two Core RPC
 requests while returning the same five transactions in order. Additional tests
 cover unordered replies, malformed replies and empty batches. This measures
@@ -26,6 +26,12 @@ Three library regressions verify locked reservation visibility and retention,
 including an unconfirmed reservation, and rejection of missing unlocked outputs.
 The legacy `wallet cardinals` listing also excludes Core-locked outputs, keeping
 modern Rune holdings and commitment reservations out of selectable funding.
+
+`--commit-interval <BLOCKS>` controls how many processed blocks are saved in each
+index transaction. It must be positive and defaults to the existing 5,000-block
+interval. Use `--commit-interval 2500` for more frequent committed progress on an
+isolated replay. This changes transaction boundaries, not indexing rules or the
+database schema; more frequent commits are not a guaranteed throughput gain.
 
 ## Earlier token-trade block-feed candidate notes
 
